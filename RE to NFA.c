@@ -1,210 +1,228 @@
 #include<stdio.h>
-#include<conio.h>
 #include<string.h>
-void main()
-
+#include<stdlib.h>
+typedef struct state
 {
+   int nextlevel[10];
+}State;
 
-char reg[20];
+State s[100];
+int index1=0,hash=0;;
+int flag=0;
 
-int q[20][3],i,j,len,a,b;
-
-
-
-for(a=0;a<20;a++)
-
+void addtrans1(int i,int j)
 {
-
-for(b=0;b<3;b++)
-
-{
-
-q[a][b]=0;
-
+   if(s[i].nextlevel[0]==0)
+    {
+        s[i].nextlevel[0]=j;
+    }
 }
 
-}
-
-printf("Regular expression: \n");
-
-scanf("%s",reg);
-
-len=strlen(reg);
-
-i=0;
-
-j=1;
-
-while(i<len)
-
+void addtrans2(int i,int j)
 {
+   if(s[i].nextlevel[1]==0)
+    {
+        s[i].nextlevel[1]=j;
+    }
+}
 
-if(reg[i]=='a'&reg[i+1]!='/'&reg[i+1]!='*')
-
+void addtrans3(int i,int j)
 {
-
-q[j][0]=j+1;
-
-j++;
-
+    if(s[i].nextlevel[2]==0)
+    {
+        s[i].nextlevel[2]=j;
+    }
+    else
+         s[i].nextlevel[3]=j;
 }
 
-if(reg[i]=='b'&reg[i+1]!='/'&reg[i+1]!='*')
-
+int nfa2(char str[])
 {
+    flag=1;
+    int i=0,prev=0;
+    while(str[i]!=')')
+    {
+       if(str[i]=='(')
+        {
+            char temp[1000];
+            strcpy(temp,&str[i]);
+            i+=nfa2(temp);
+        }
+        else if(strncmp(&str[i],"letter",6)==0)
+        {
+            prev=index1;
+            addtrans3(index1,index1+1);
 
-q[j][1]=j+1;
+            index1++;
+            addtrans1(index1,index1+1);
+            i=i+6;
+            index1++;
+            addtrans3(index1,index1+1);
+            index1++;
+        }
+       else if(strncmp(&str[i],"digit",5)==0)
+        {
+            prev=index1;
+            addtrans2(index1,index1+1);
+            i=i+5;
+            index1++;
+            addtrans2(index1,index1+1);
+            index1++;
+        }
+       else if(str[i]=='|')
+        {
+            addtrans3(prev,index1+1);
+            i++;
+            prev=index1+1;
+            if(strncmp(&str[i],"letter",6)==0)
+            {
+                addtrans1(prev,prev+1);
+                prev++;
+                i=i+6;
+            }
+            else if(strncmp(&str[i],"digit",5)==0)
+            {
+                 addtrans2(prev,prev+1);
+                 prev++;
+                 i=i+5;
+            }
+            addtrans3(prev,index1);
+            s[prev].nextlevel[2]=index1;
+            addtrans3(index1,prev+1);
+            index1=prev;
+        }
+        else if(str[i]=='*')
+        {
+            hash=1;
+            if(flag==1)
+            {
+                 addtrans3(s[index1].nextlevel[2],prev);
+            }
+            else
+            {
+                 index1++;
+                 addtrans3(index1,prev);
+            }
+            addtrans3(prev-1,index1+1);
+            i++;
+        }
+        else
+            i++;
 
-j++;
 
+    }
+    return i+1;
 }
-
-if(reg[i]=='e'&reg[i+1]!='/'&reg[i+1]!='*')
-
+void epsnfa(char exp[])
 {
+    char str[100];
+    strcpy(str,exp);
+    int prev1=0,i=0;
 
-q[j][2]=j+1;
+    while(i<strlen(str))
+    {
+        if(str[i]=='(')
+        {
+            if(!hash)
+               index1++;
 
-j++;
+            addtrans3(index1,index1+1);
+            index1++;
+            prev1=index1;
+            char temp[1000];
+            i++;
+            strcpy(temp,&str[i]);
+            i+=nfa2(temp);
+        }
+        else if(strncmp(&str[i],"letter",6)==0)
+        {
+            if(!hash)
+               index1++;
+            prev1=index1;
+            addtrans1(index1,index1+1);
+            i=i+6;
+            index1++;
+            addtrans3(index1,index1+1);
+        }
+        else if(strncmp(&str[i],"digit",5)==0)
+        {
+             index1++;
+             prev1=index1;
+             addtrans2(index1,index1+1);
+             s[index1].nextlevel[1]=index1+1;
+             i=i+5;
+             index1++;
+             addtrans3(index1,index1+1);
+        }
+        else if(str[i]=='|')
+        {
+             i++;
+             prev1;
+            if(strncmp(&str[i],"letter",6)==0)
+            {
+                 addtrans1(prev1,index1+1);
+                 s[prev1].nextlevel[0]=index1+1;
+                 prev1++;
+                 i=i+6;
+            }
+            else if(strncmp(&str[i],"digit",5)==0)
+            {
+                 addtrans2(prev1,index1+1);
+                 s[prev1].nextlevel[1]=index1+1;
+                 prev1++;
+                 i=i+5;
+            }
+            else
+            {
+                 addtrans3(prev1,index1);
+                 s[prev1].nextlevel[2]=index1;
+            }
+        }
+        else if(str[i]=='*')
+        {
+            hash=1;
+
+            if(flag==1)
+            {
+                 addtrans3(s[index1].nextlevel[2],prev1);
+            }
+            else
+            {
+                 index1++;
+                 addtrans3(index1,prev1);
+                 addtrans3(index1,index1+1);
+            }
+            addtrans3(prev1-1,index1+1);
+            i++;
+        }
+        else
+            i++;
+    }
 
 }
-
-if(reg[i]=='a'&reg[i+1]=='/'&reg[i+2]=='b')
-
+int main()
 {
-
-q[j][2]=((j+1)*10)+(j+3);
-
-j++;
-
-q[j][0]=j+1;
-
-j++;
-
-q[j][2]=j+3;
-
-j++;
-
-q[j][1]=j+1;
-
-j++;
-
-q[j][2]=j+1;
-
-j++;
-
-i=i+2;
-
-}
-
-if(reg[i]=='b'&reg[i+1]=='/'&reg[i+2]=='a')
-
-{
-
-q[j][2]=((j+1)*10)+(j+3);
-
-j++;
-
-q[j][1]=j+1;
-
-j++;
-
-q[j][2]=j+3;
-
-j++;
-
-q[j][0]=j+1;
-
-j++;
-
-q[j][2]=j+1;
-
-j++;
-
-i=i+2;
-
-}
-
-if(reg[i]=='a'&reg[i+1]=='*')
-
-{
-
-q[j][2]=((j+1)*10)+(j+3);
-
-j++;
-
-q[j][0]=j+1;
-
-j++;
-
-q[j][2]=((j+1)*10)+(j-1);
-
-j++;
-
-}
-
-if(reg[i]=='b'&reg[i+1]=='*')
-
-{
-
-q[j][2]=((j+1)*10)+(j+3);
-
-j++;
-
-q[j][1]=j+1;
-
-j++;
-
-q[j][2]=((j+1)*10)+(j-1);
-
-j++;
-
-}
-
-if(reg[i]==')'&reg[i+1]=='*')
-
-{
-
-q[0][2]=((j+1)*10)+1;
-
-q[j][2]=((j+1)*10)+1;
-
-j++;
-
-}
-
-i++;
-
-}
-
-printf("Transition function \n");
-
-for(i=0;i<=j;i++)
-
-{
-
-if(q[i][0]!=0)
-
-printf("\n q[%d,a]-->%d",i,q[i][0]);
-
-if(q[i][1]!=0)
-
-printf("\n q[%d,b]-->%d",i,q[i][1]);
-
-if(q[i][2]!=0)
-
-{
-
-if(q[i][2]<10)
-
-printf("\n q[%d,e]-->%d",i,q[i][2]);
-
-else
-
-printf("\n q[%d,e]-->%d & %d",i,q[i][2]/10,q[i][2]%10);
-
-}
-
-}
-
+    char exp[100];
+    printf("Enter the Regular Expression\n");
+    scanf("%[^\n]",exp);
+    for(int i=0;i<20;i++)
+    {
+        s[i].nextlevel[0]=0;
+        s[i].nextlevel[1]=0;
+        s[i].nextlevel[2]=0;
+    }
+    epsnfa(exp);
+    index1++;
+
+    printf("\n********Transition table******\n");
+    printf("States\t|letter\t|digit\t|%c\t|\n_________________________________\n",238);
+    for(int i=1;i<index1;i++)
+    {
+       printf("%d\t|%d\t|%d\t|%2d",i,s[i].nextlevel[0],s[i].nextlevel[1],s[i].nextlevel[2]);
+       s[i].nextlevel[3]? printf(",%2d  |\n",s[i].nextlevel[3] ): printf("     |\n");
+    }
+    printf("%d ---> Accepting state\n",index1);
+    printf("\nNOTE: 0 state means NO Transitions!!!!\n");
+
+    return 0;
 }
